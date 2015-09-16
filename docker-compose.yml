@@ -1,0 +1,85 @@
+kubelet:
+  labels:
+    #io.rancher.scheduler.affinity:host_label: type=minion
+    #io.rancher.sidekicks: proxy
+    io.rancher.container.dns: true
+  command:
+  - kubelet
+  - --api_servers=http://master:8080
+  - --allow-privileged=true
+  - --containerized=true
+  - --register-node=true
+  image: k8s
+  volumes:
+  - /var/run/docker.sock:/var/run/docker.sock
+  net: host
+  pid: host
+  ipc: host
+  privileged: true
+  links:
+  - api-server:master
+
+proxy:
+  labels:
+    io.rancher.container.dns: true
+  command:
+  - kube-proxy
+  - --master=http://master:8080
+  - --v=2
+  image: k8s
+  privileged: true
+  net: host
+  links:
+  - api-server:master
+
+
+etcd:
+  command:
+  - /usr/local/bin/etcd
+  - --addr=127.0.0.1:4001
+  - --bind-addr=0.0.0.0:4001
+  - --data-dir=/var/etcd/data
+  image: gcr.io/google_containers/etcd:2.0.12
+  net: container:api-server
+
+api-server:
+  labels:
+    io.rancher.sidekicks: etcd,scheduler,controller-manager,rancher-agent
+  command: 
+  - /usr/local/bin/kube-apiserver
+  - --service-cluster-ip-range=10.42.0.0/16
+  - --etcd-servers=http://localhost:4001
+  - --insecure-bind-address=0.0.0.0
+  - --insecure-port=8080
+  image: gcr.io/google_containers/kube-apiserver:484b7c9ae6de786a5ac59c8d70e0628d
+  ports:
+  - "8080:8080"
+
+rancher-agent:
+  net: container:api-server
+  labels:
+    io.rancher.container.create_agent: true
+    io.rancher.container.agent_service.labels_provider: true
+    io.rancher.container.dns: true
+  image: rancher/kubernetes-agent:dev
+  privileged: true
+  environment:
+      KUBERNETES_URL: http://localhost:8080
+  volumes:
+  - /var/run/docker.sock:/var/run/docker.sock
+
+
+scheduler:
+  command: 
+  - /usr/local/bin/kube-scheduler
+  - --master=127.0.0.1:8080
+  image: gcr.io/google_containers/kube-scheduler:b49cfdead362f2c3a7cdfc1eb1141847
+  net: container:api-server
+
+
+controller-manager:
+  command: 
+  - /usr/local/bin/kube-controller-manager
+  - --master=127.0.0.1:8080
+  image: gcr.io/google_containers/kube-controller-manager:c91c5440ee3e45f0095caa68851ee025
+  net: container:api-server
