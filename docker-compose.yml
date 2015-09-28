@@ -60,11 +60,8 @@ rancher-agent:
   labels:
     io.rancher.container.create_agent: true
     io.rancher.container.agent_service.labels_provider: true
-    io.rancher.container.dns: true
   image: rancher/kubernetes-agent:dev
   privileged: true
-  environment:
-      KUBERNETES_URL: http://localhost:8080
   volumes:
   - /var/run/docker.sock:/var/run/docker.sock
 
