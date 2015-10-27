@@ -1,15 +1,17 @@
 kubelet:
   labels:
-    #io.rancher.scheduler.affinity:host_label: type=minion
-    #io.rancher.sidekicks: proxy
     io.rancher.container.dns: true
+    io.rancher.container.create_agent: true
+    io.rancher.container.agent.role: environment
+    io.rancher.scheduler.global: true
   command:
   - kubelet
   - --api_servers=http://master:8080
   - --allow-privileged=true
   - --containerized=true
   - --register-node=true
-  image: k8s
+  - --cloud-provider=rancher
+  image: k8s:craig-dev
   volumes:
   - /var/run/docker.sock:/var/run/docker.sock
   net: host
@@ -22,16 +24,16 @@ kubelet:
 proxy:
   labels:
     io.rancher.container.dns: true
+    io.rancher.scheduler.global: true
   command:
   - kube-proxy
   - --master=http://master:8080
   - --v=2
-  image: k8s
+  image: k8s:craig-dev
   privileged: true
   net: host
   links:
   - api-server:master
-
 
 etcd:
   command:
@@ -45,15 +47,36 @@ etcd:
 api-server:
   labels:
     io.rancher.sidekicks: etcd,scheduler,controller-manager,rancher-agent
+    io.rancher.container.create_agent: true
+    io.rancher.container.agent.role: environment
   command: 
   - /usr/local/bin/kube-apiserver
   - --service-cluster-ip-range=10.42.0.0/16
   - --etcd-servers=http://localhost:4001
   - --insecure-bind-address=0.0.0.0
   - --insecure-port=8080
-  image: gcr.io/google_containers/kube-apiserver:484b7c9ae6de786a5ac59c8d70e0628d
+  - --cloud-provider=rancher
+  image: gcr.io/google_containers/kube-apiserver:craig-dev
   ports:
   - "8080:8080"
+
+scheduler:
+  command:
+  - /usr/local/bin/kube-scheduler
+  - --master=127.0.0.1:8080
+  image: gcr.io/google_containers/kube-scheduler:craig-dev
+  net: container:api-server
+
+controller-manager:
+  command:
+  - /usr/local/bin/kube-controller-manager
+  - --master=127.0.0.1:8080
+  - --cloud-provider=rancher
+  image: gcr.io/google_containers/kube-controller-manager:craig-dev
+  net: container:api-server
+  labels:
+    io.rancher.container.create_agent: true
+    io.rancher.container.agent.role: environment
 
 rancher-agent:
   net: container:api-server
@@ -64,19 +87,3 @@ rancher-agent:
   privileged: true
   volumes:
   - /var/run/docker.sock:/var/run/docker.sock
-
-
-scheduler:
-  command: 
-  - /usr/local/bin/kube-scheduler
-  - --master=127.0.0.1:8080
-  image: gcr.io/google_containers/kube-scheduler:b49cfdead362f2c3a7cdfc1eb1141847
-  net: container:api-server
-
-
-controller-manager:
-  command: 
-  - /usr/local/bin/kube-controller-manager
-  - --master=127.0.0.1:8080
-  image: gcr.io/google_containers/kube-controller-manager:c91c5440ee3e45f0095caa68851ee025
-  net: container:api-server
