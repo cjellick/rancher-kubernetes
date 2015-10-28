@@ -5,8 +5,12 @@ api-server:
         template:
           type: json
           create: true
+          read: true
+          update: true
     kubernetesService:
       resource_fields:
         template:
           type: json
           create: true
+          read: true
+          update: true
