@@ -11,7 +11,7 @@ kubelet:
   - --containerized=true
   - --register-node=true
   - --cloud-provider=rancher
-  image: k8s:craig-dev
+  image: cjellick/k8s:dev
   volumes:
   - /var/run/docker.sock:/var/run/docker.sock
   net: host
@@ -29,7 +29,7 @@ proxy:
   - kube-proxy
   - --master=http://master:8080
   - --v=2
-  image: k8s:craig-dev
+  image: cjellick/k8s:dev
   privileged: true
   net: host
   links:
@@ -56,7 +56,7 @@ api-server:
   - --insecure-bind-address=0.0.0.0
   - --insecure-port=8080
   - --cloud-provider=rancher
-  image: gcr.io/google_containers/kube-apiserver:craig-dev
+  image: cjellick/kube-apiserver:dev
   ports:
   - "8080:8080"
 
@@ -64,7 +64,7 @@ scheduler:
   command:
   - /usr/local/bin/kube-scheduler
   - --master=127.0.0.1:8080
-  image: gcr.io/google_containers/kube-scheduler:craig-dev
+  image: cjellick/kube-scheduler:dev
   net: container:api-server
 
 controller-manager:
@@ -72,7 +72,7 @@ controller-manager:
   - /usr/local/bin/kube-controller-manager
   - --master=127.0.0.1:8080
   - --cloud-provider=rancher
-  image: gcr.io/google_containers/kube-controller-manager:craig-dev
+  image: cjellick/kube-controller-manager:dev
   net: container:api-server
   labels:
     io.rancher.container.create_agent: true
@@ -83,7 +83,7 @@ rancher-agent:
   labels:
     io.rancher.container.create_agent: true
     io.rancher.container.agent_service.labels_provider: true
-  image: rancher/kubernetes-agent:dev
+  image: cjellick/kubernetes-agent:dev
   privileged: true
   volumes:
   - /var/run/docker.sock:/var/run/docker.sock
