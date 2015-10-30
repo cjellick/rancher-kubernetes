@@ -42,23 +42,24 @@ etcd:
   - --bind-addr=0.0.0.0:4001
   - --data-dir=/var/etcd/data
   image: gcr.io/google_containers/etcd:2.0.12
-  net: container:api-server
 
 api-server:
   labels:
-    io.rancher.sidekicks: etcd,scheduler,controller-manager,rancher-agent
+    io.rancher.sidekicks: scheduler,controller-manager
     io.rancher.container.create_agent: true
     io.rancher.container.agent.role: environment
   command: 
   - /usr/local/bin/kube-apiserver
-  - --service-cluster-ip-range=10.42.0.0/16
-  - --etcd-servers=http://localhost:4001
+  - --service-cluster-ip-range=10.43.0.0/16
+  - --etcd-servers=http://etcd:4001
   - --insecure-bind-address=0.0.0.0
   - --insecure-port=8080
   - --cloud-provider=rancher
   image: cjellick/kube-apiserver:dev
   ports:
   - "8080:8080"
+  links:
+  - etcd
 
 scheduler:
   command:
@@ -79,11 +80,14 @@ controller-manager:
     io.rancher.container.agent.role: environment
 
 rancher-agent:
-  net: container:api-server
   labels:
     io.rancher.container.create_agent: true
     io.rancher.container.agent_service.labels_provider: true
+  environment:
+    KUBERNETES_URL: http://master:8080
   image: cjellick/kubernetes-agent:dev
   privileged: true
   volumes:
   - /var/run/docker.sock:/var/run/docker.sock
+  links:
+  - api-server:master
