@@ -1,98 +1,98 @@
 kubelet:
-  labels:
-    io.rancher.container.dns: true
-    io.rancher.container.create_agent: true
-    io.rancher.container.agent.role: environment
-    io.rancher.scheduler.global: true
-  command:
-  - kubelet
-  - --api_servers=http://master:8080
-  - --allow-privileged=true
-  - --containerized=true
-  - --register-node=true
-  - --cloud-provider=rancher
-  - --healthz-bind-address=0.0.0.0
-  image: cjellick/k8s:dev
-  volumes:
-  - /var/run/docker.sock:/var/run/docker.sock
-  net: host
-  pid: host
-  ipc: host
-  privileged: true
-  links:
-  - api-server:master
+    labels:
+        io.rancher.container.dns: true
+        io.rancher.container.create_agent: true
+        io.rancher.container.agent.role: environment
+        io.rancher.scheduler.global: true
+    command:
+    - kubelet
+    - --api_servers=http://master:8080
+    - --allow-privileged=true
+    - --containerized=true
+    - --register-node=true
+    - --cloud-provider=rancher
+    - --healthz-bind-address=0.0.0.0
+    image: cjellick/k8s:dev
+    volumes:
+    - /var/run/docker.sock:/var/run/docker.sock
+    net: host
+    pid: host
+    ipc: host
+    privileged: true
+    links:
+    - api-server:master
 
 proxy:
-  labels:
-    io.rancher.container.dns: true
-    io.rancher.scheduler.global: true
-  command:
-  - kube-proxy
-  - --master=http://master:8080
-  - --v=2
-  - --healthz-bind-address=0.0.0.0
-  image: cjellick/k8s:dev
-  privileged: true
-  net: host
-  links:
-  - api-server:master
+    labels:
+        io.rancher.container.dns: true
+        io.rancher.scheduler.global: true
+    command:
+    - kube-proxy
+    - --master=http://master:8080
+    - --v=2
+    - --healthz-bind-address=0.0.0.0
+    image: cjellick/k8s:dev
+    privileged: true
+    net: host
+    links:
+    - api-server:master
 
 etcd:
-  command:
-  - /usr/local/bin/etcd
-  - --addr=127.0.0.1:4001
-  - --bind-addr=0.0.0.0:4001
-  - --data-dir=/var/etcd/data
-  image: gcr.io/google_containers/etcd:2.0.12
+    command:
+    - /usr/local/bin/etcd
+    - --addr=127.0.0.1:4001
+    - --bind-addr=0.0.0.0:4001
+    - --data-dir=/var/etcd/data
+    image: gcr.io/google_containers/etcd:2.0.12
 
 api-server:
-  labels:
-    io.rancher.container.create_agent: true
-    io.rancher.container.agent.role: environment
-  command: 
-  - /usr/local/bin/kube-apiserver
-  - --service-cluster-ip-range=10.43.0.0/16
-  - --etcd-servers=http://etcd:4001
-  - --insecure-bind-address=0.0.0.0
-  - --insecure-port=8080
-  - --cloud-provider=rancher
-  image: cjellick/kube-apiserver:dev
-  ports:
-  - "8080:8080"
-  links:
-  - etcd
+    labels:
+        io.rancher.container.create_agent: true
+        io.rancher.container.agent.role: environment
+    command: 
+    - /usr/local/bin/kube-apiserver
+    - --service-cluster-ip-range=10.43.0.0/16
+    - --etcd-servers=http://etcd:4001
+    - --insecure-bind-address=0.0.0.0
+    - --insecure-port=8080
+    - --cloud-provider=rancher
+    image: cjellick/kube-apiserver:dev
+    ports:
+    - "8080:8080"
+    links:
+    - etcd
 
 scheduler:
-  command:
-  - /usr/local/bin/kube-scheduler
-  - --master=http://master:8080
-  - --address=0.0.0.0
-  image: cjellick/kube-scheduler:dev
-  links:
-  - api-server:master
+    command:
+    - /usr/local/bin/kube-scheduler
+    - --master=http://master:8080
+    - --address=0.0.0.0
+    image: cjellick/kube-scheduler:dev
+    links:
+    - api-server:master
 
 controller-manager:
-  command:
-  - /usr/local/bin/kube-controller-manager
-  - --master=http://master:8080
-  - --cloud-provider=rancher
-  - --address=0.0.0.0
-  image: cjellick/kube-controller-manager:dev
-  labels:
-    io.rancher.container.create_agent: true
-    io.rancher.container.agent.role: environment
-  links:
-  - api-server:master
+    command:
+    - /usr/local/bin/kube-controller-manager
+    - --master=http://master:8080
+    - --cloud-provider=rancher
+    - --address=0.0.0.0
+    image: cjellick/kube-controller-manager:dev
+    labels:
+        io.rancher.container.create_agent: true
+        io.rancher.container.agent.role: environment
+    links:
+    - api-server:master
 
 rancher-agent:
-  labels:
-    io.rancher.container.create_agent: true
-    io.rancher.container.agent_service.labels_provider: true
-  environment:
-    KUBERNETES_URL: http://master:8080
-  image: cjellick/kubernetes-agent:dev
-  privileged: true
-  volumes:
-  - /var/run/docker.sock:/var/run/docker.sock
-  links:
-  - api-server:master
+    labels:
+        io.rancher.container.create_agent: true
+        io.rancher.container.agent_service.labels_provider: true
+    environment:
+        KUBERNETES_URL: http://master:8080
+    image: cjellick/kubernetes-agent:dev
+    privileged: true
+    volumes:
+    - /var/run/docker.sock:/var/run/docker.sock
+    links:
+    - api-server:master
