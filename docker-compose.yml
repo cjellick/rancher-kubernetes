@@ -11,6 +11,7 @@ kubelet:
   - --containerized=true
   - --register-node=true
   - --cloud-provider=rancher
+  - --healthz-bind-address=0.0.0.0
   image: cjellick/k8s:dev
   volumes:
   - /var/run/docker.sock:/var/run/docker.sock
@@ -29,6 +30,7 @@ proxy:
   - kube-proxy
   - --master=http://master:8080
   - --v=2
+  - --healthz-bind-address=0.0.0.0
   image: cjellick/k8s:dev
   privileged: true
   net: host
@@ -45,7 +47,6 @@ etcd:
 
 api-server:
   labels:
-    io.rancher.sidekicks: scheduler,controller-manager
     io.rancher.container.create_agent: true
     io.rancher.container.agent.role: environment
   command: 
@@ -64,20 +65,24 @@ api-server:
 scheduler:
   command:
   - /usr/local/bin/kube-scheduler
-  - --master=127.0.0.1:8080
+  - --master=http://master:8080
+  - --address=0.0.0.0
   image: cjellick/kube-scheduler:dev
-  net: container:api-server
+  links:
+  - api-server:master
 
 controller-manager:
   command:
   - /usr/local/bin/kube-controller-manager
-  - --master=127.0.0.1:8080
+  - --master=http://master:8080
   - --cloud-provider=rancher
+  - --address=0.0.0.0
   image: cjellick/kube-controller-manager:dev
-  net: container:api-server
   labels:
     io.rancher.container.create_agent: true
     io.rancher.container.agent.role: environment
+  links:
+  - api-server:master
 
 rancher-agent:
   labels:
